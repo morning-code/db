@@ -54,8 +54,6 @@ jooq {
         jdbc {
             driver = "com.mysql.jdbc.Driver"
             url = "jdbc:mysql://127.0.0.1:3306/morning_code"
-            //url = "jdbc:mysql://local_db:3306/morning_code"
-            //user = "mc_rw"
             user = "root"
             password = "password"
         }
@@ -63,8 +61,9 @@ jooq {
             name = "org.jooq.codegen.DefaultGenerator"
             database {
                 name = "org.jooq.meta.mysql.MySQLDatabase"
+                inputSchema = "morning_code"
                 includes = ".*"
-                excludes = ""
+                excludes = "flyway_schema_history"
             }
             generate {
                 isDeprecated = false
