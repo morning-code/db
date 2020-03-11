@@ -5,6 +5,8 @@
  * For more details take a look at the Java Libraries chapter in the Gradle
  * User Manual available at https://docs.gradle.org/6.0/userguide/java_library_plugin.html
  */
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import nu.studer.gradle.jooq.JooqEdition
 
 // @see https://github.com/etiennestuder/gradle-jooq-plugin/blob/master/example/use_kotlin_dsl/build.gradle.kts
@@ -13,18 +15,33 @@ plugins {
     id("org.flywaydb.flyway") version "6.3.0"
     // @see https://www.bountysource.com/issues/69612690-add-kotlin-dsl-support
     id("nu.studer.jooq")
+    id("com.github.johnrengelman.shadow") version "2.0.4"
+    maven
+    kotlin("jvm") version "1.3.50"
 }
 
 group = "io.code.morning"
 version = "0.0.1-SNAPSHOT"
+extra["packaging"] = "jar"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
 
 repositories {
     jcenter()
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("mysql:mysql-connector-java:5.1.48")
     jooqRuntime("mysql:mysql-connector-java:5.1.48")
+
+    implementation("org.jooq:jooq:3.12.3")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 }
 
 val dbUrl: String = "jdbc:mysql://127.0.0.1:3306/morning_code?useSSL=false"
@@ -69,6 +86,45 @@ jooq {
                 name = "org.jooq.codegen.DefaultGeneratorStrategy"
             }
         }
+    }
+}
+
+// Upload jar to Maven Local
+val javadocJar by tasks.creating(Jar::class) {
+    from(tasks["javadoc"])
+}
+
+val sourcesJar = tasks.create("sourcesJar", Jar::class.java) {
+    group = JavaBasePlugin.DOCUMENTATION_GROUP
+    description = "Assembles sources JAR"
+    from(sourceSets["main"].allSource)
+}
+
+val shadowJar = tasks["shadowJar"] as ShadowJar
+
+artifacts {
+    withGroovyBuilder {
+        "archives"(tasks["jar"], sourcesJar, javadocJar, shadowJar)
+    }
+}
+
+val uploadArchives: Upload by tasks
+uploadArchives.apply {
+    repositories {
+        withConvention(MavenRepositoryHandlerConvention::class) {
+            mavenDeployer {
+                withGroovyBuilder {
+                    "repository"("url" to uri("/Users/otajisan/.m2/repository"))
+                }
+            }
+        }
+    }
+}
+
+tasks.withType<KotlinCompile> {
+    kotlinOptions {
+        freeCompilerArgs = listOf("-Xjsr305=strict")
+        jvmTarget = "1.8"
     }
 }
 
